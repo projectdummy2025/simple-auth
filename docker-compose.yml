@@ -9,7 +9,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
-      - ./backend/src:/app/src
+      - ./backend/src:/app
       - /app/node_modules  # Keep node_modules in container only
     depends_on:
       postgres:
@@ -36,7 +36,6 @@ services:
     ports:
       - "${FRONTEND_PORT:-3000}:80" # Perubahan di sini: dari 3000 menjadi 80
     volumes:
-      - ./frontend/src:/app/src
       - /app/node_modules  # Keep node_modules in container only
     depends_on:
       - backend

@@ -1,18 +1,35 @@
 const express = require('express');
 const cors = require('cors');
 
+// Load environment variables as early as possible
+require('dotenv').config();
+console.log('Environment variables after dotenv.load:');
+console.log('- DB_HOST:', process.env.DB_HOST);
+console.log('- DB_USER:', process.env.DB_USER);
+console.log('- DB_PORT:', process.env.DB_PORT);
+console.log('- DB_NAME:', process.env.DB_NAME);
+console.log('- DB_PASSWORD exists:', !!process.env.DB_PASSWORD);
+
 let db;
 try {
+  console.log('Attempting to load database configuration...');
+  console.log('Environment variables during db load:');
+  console.log('- DB_HOST:', process.env.DB_HOST);
+  console.log('- DB_USER:', process.env.DB_USER);
+  console.log('- DB_PORT:', process.env.DB_PORT);
+  console.log('- DB_NAME:', process.env.DB_NAME);
+  console.log('- DB_PASSWORD exists:', !!process.env.DB_PASSWORD);
+
   db = require('./config/db'); // Database connection
+  console.log('Database configuration loaded successfully:', !!db);
 } catch (error) {
   console.error('Failed to load database configuration:', error.message);
+  console.error('Stack trace:', error.stack);
   process.exit(1);
 }
 
 const authRoutes = require('./routes/auth');
 const errorHandler = require('./middleware/errorHandler');
-
-require('dotenv').config();
 
 const app = express();
 
@@ -32,15 +49,18 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Test database connection
-const pool = db;
-if (pool && typeof pool.connect === 'function') {
-  pool.connect((err, client, release) => {
+if (db && typeof db.connect === 'function') {
+  db.connect((err, client, release) => {
     if (err) {
-      console.error('Error connecting to the database:', err);
-    } else {
-      console.log('Successfully connected to the database');
-      if (release) release();
+      return console.error('Error acquiring client', err.stack);
     }
+    client.query('SELECT NOW()', (err, result) => {
+      release();
+      if (err) {
+        return console.error('Error executing query', err.stack);
+      }
+      console.log('Database connected successfully:', result.rows[0]);
+    });
   });
 } else {
   console.error('Database pool is not available or invalid');
