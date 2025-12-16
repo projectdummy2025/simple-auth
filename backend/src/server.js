@@ -49,8 +49,8 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Test database connection
-if (db && typeof db.connect === 'function') {
-  db.connect((err, client, release) => {
+if (db && db.pool && typeof db.pool.connect === 'function') {
+  db.pool.connect((err, client, release) => {
     if (err) {
       return console.error('Error acquiring client', err.stack);
     }

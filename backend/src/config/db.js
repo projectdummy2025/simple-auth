@@ -50,5 +50,35 @@ try {
   // Don't exit here, just don't create the pool
 }
 
-// Export the pool (which may be null if initialization failed)
-module.exports = pool;
+// If pool was initialized successfully, also provide a query helper function
+if (pool) {
+  // Add a query helper method that returns a promise
+  const query = (text, params) => {
+    console.log('Executing query:', text);
+    return new Promise((resolve, reject) => {
+      pool.query(text, params, (err, res) => {
+        if (err) {
+          console.error('Database query error:', err);
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+  };
+
+  // Also attach the query function to the pool object for compatibility
+  pool.queryPromise = query;
+
+  // Export both pool and query function
+  module.exports = {
+    pool,
+    query
+  };
+} else {
+  // If pool is null, export null for both
+  module.exports = {
+    pool: null,
+    query: null
+  };
+}
