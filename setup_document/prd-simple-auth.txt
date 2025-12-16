@@ -69,7 +69,7 @@ project-root/
 ├── frontend/
 │   ├── Dockerfile
 │   └── src/
-├── docker-compose.yml
+├── docker compose.yml
 └── README.md
 
 Setiap komponen memiliki tanggung jawab terpisah dan berjalan dalam container masing-masing.

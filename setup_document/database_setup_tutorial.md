@@ -9,7 +9,7 @@ This tutorial explains how to complete Phase 2 of the development plan: Database
 
 ## STEP 1: BUILD AND START THE POSTGRESQL CONTAINER
 
-To test PostgreSQL container connectivity, you'll need to use the docker-compose.yml file that was already created in Phase 1. The PostgreSQL service is defined with the following properties from your `.env` file:
+To test PostgreSQL container connectivity, you'll need to use the docker compose.yml file that was already created in Phase 1. The PostgreSQL service is defined with the following properties from your `.env` file:
 
 - Image: postgres:15-alpine
 - Port mapping: `${POSTGRES_PORT:-5432}:5432` (typically 5432)
@@ -83,7 +83,7 @@ INSERT INTO users (username, email, password_hash) VALUES ('testuser', 'testuser
 
 2. Stop the container:
 ```
-Ctrl+C in the docker-compose terminal
+Ctrl+C in the docker compose terminal
 ```
 
 3. Restart the container:
@@ -113,7 +113,7 @@ DB_PASSWORD=admin0123
 DB_URL=postgresql://admin:admin0123@postgres:5432/simple_auth_db
 ```
 
-2. Verify docker-compose.yml has the postgres service configured with:
+2. Verify docker compose.yml has the postgres service configured with:
 - Environment variables mapping to the .env values
 - Volume mount for postgres_data
 - Mount for init.sql at /docker-entrypoint-initdb.d/init.sql
@@ -123,12 +123,12 @@ DB_URL=postgresql://admin:admin0123@postgres:5432/simple_auth_db
 ## STEP 6: PREPARATION FOR NEXT PHASE
 
 Once you've verified all of the above, the database is ready for the backend development phase. The backend service will be able to connect to the database using:
-- Hostname: "postgres" (the service name in docker-compose)
+- Hostname: "postgres" (the service name in docker compose)
 - Database: ${DB_NAME}
 - User: ${DB_USER}
 - Password: ${DB_PASSWORD}
 
-All these values will be provided to the backend container through environment variables as defined in the docker-compose.yml file.
+All these values will be provided to the backend container through environment variables as defined in the docker compose.yml file.
 
 ## SUCCESS CRITERIA:
 - PostgreSQL container starts without errors

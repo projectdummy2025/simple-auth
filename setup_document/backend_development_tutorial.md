@@ -20,19 +20,20 @@ This tutorial explains how to complete Phase 3 of the development plan: Backend 
 - Phase 1 (Project Setup) completed
 - Phase 2 (Database Setup) completed
 - PostgreSQL container running and accessible as 'postgres'
-- Docker and docker-compose installed
+- Docker and docker compose installed
+- Environment variables properly configured in `.env` file
 
 ## STEP 1: CREATE BACKEND PACKAGE.JSON
 
 In the containerized environment, we'll create a package.json file for the backend service with necessary dependencies.
 
-From your project root directory (`/home/fedora/projects/simple-auth`), create the backend package.json:
+From your project root directory (`/home/fedora/projects/simple-auth`), ensure you have a proper `.env` file:
 
 ```
-cd backend/src
+cp .env\ example .env
 ```
 
-Create the `package.json` file with the following content:
+Create the `package.json` file in `backend/src` directory with the following content:
 
 ```json
 {
@@ -72,11 +73,36 @@ Create the following files in the `backend/src` directory:
 ```
 const express = require('express');
 const cors = require('cors');
-const { pool } = require('./config/db'); // Database connection
+
+// Load environment variables as early as possible
+require('dotenv').config();
+console.log('Environment variables after dotenv.load:');
+console.log('- DB_HOST:', process.env.DB_HOST);
+console.log('- DB_USER:', process.env.DB_USER);
+console.log('- DB_PORT:', process.env.DB_PORT);
+console.log('- DB_NAME:', process.env.DB_NAME);
+console.log('- DB_PASSWORD exists:', !!process.env.DB_PASSWORD);
+
+let db;
+try {
+  console.log('Attempting to load database configuration...');
+  console.log('Environment variables during db load:');
+  console.log('- DB_HOST:', process.env.DB_HOST);
+  console.log('- DB_USER:', process.env.DB_USER);
+  console.log('- DB_PORT:', process.env.DB_PORT);
+  console.log('- DB_NAME:', process.env.DB_NAME);
+  console.log('- DB_PASSWORD exists:', !!process.env.DB_PASSWORD);
+
+  db = require('./config/db'); // Database connection
+  console.log('Database configuration loaded successfully:', !!db);
+} catch (error) {
+  console.error('Failed to load database configuration:', error.message);
+  console.error('Stack trace:', error.stack);
+  process.exit(1);
+}
+
 const authRoutes = require('./routes/auth');
 const errorHandler = require('./middleware/errorHandler');
-
-require('dotenv').config();
 
 const app = express();
 
@@ -96,14 +122,22 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-  } else {
-    console.log('Successfully connected to the database');
-    release();
-  }
-});
+if (db && db.pool && typeof db.pool.connect === 'function') {
+  db.pool.connect((err, client, release) => {
+    if (err) {
+      return console.error('Error acquiring client', err.stack);
+    }
+    client.query('SELECT NOW()', (err, result) => {
+      release();
+      if (err) {
+        return console.error('Error executing query', err.stack);
+      }
+      console.log('Database connected successfully:', result.rows[0]);
+    });
+  });
+} else {
+  console.error('Database pool is not available or invalid');
+}
 
 const PORT = process.env.BACKEND_PORT || 8000;
 const HOST = process.env.BACKEND_HOST || '0.0.0.0';
@@ -121,19 +155,88 @@ module.exports = app;
 ```
 const { Pool } = require('pg');
 
-// Use environment variables for database connection
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'simple_auth_db',
-  user: process.env.DB_USER || 'admin',
-  password: process.env.DB_PASSWORD || 'admin0123',
-});
+// Initialize with null to ensure module exports something
+let pool = null;
 
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool
-};
+try {
+  // Validate environment variables before creating pool
+  const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+    database: process.env.DB_NAME
+  };
+
+  console.log('Database configuration:', {
+    host: dbConfig.host,
+    user: dbConfig.user,
+    database: dbConfig.database,
+    port: dbConfig.port
+  });
+
+  // Check if required environment variables are defined
+  const requiredEnvVars = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_PORT', 'DB_NAME'];
+  const missingEnvVars = [];
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      missingEnvVars.push(envVar);
+      console.error(`Missing required environment variable: ${envVar}`);
+    }
+  }
+
+  // Log any missing environment variables and exit if any are missing
+  if (missingEnvVars.length > 0) {
+    console.error(`Application will not start due to missing environment variables: ${missingEnvVars.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Use environment variables for database connection
+  pool = new Pool(dbConfig);
+
+  // Handle pool errors
+  pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err);
+  });
+
+} catch (error) {
+  console.error('Failed to initialize database connection pool:', error.message);
+  console.error('Error stack:', error.stack);
+  // Don't exit here, just don't create the pool
+}
+
+// If pool was initialized successfully, also provide a query helper function
+if (pool) {
+  // Add a query helper method that returns a promise
+  const query = (text, params) => {
+    console.log('Executing query:', text);
+    return new Promise((resolve, reject) => {
+      pool.query(text, params, (err, res) => {
+        if (err) {
+          console.error('Database query error:', err);
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    });
+  };
+
+  // Also attach the query function to the pool object for compatibility
+  pool.queryPromise = query;
+
+  // Export both pool and query function
+  module.exports = {
+    pool,
+    query
+  };
+} else {
+  // If pool is null, export null for both
+  module.exports = {
+    pool: null,
+    query: null
+  };
+}
 ```
 
 ### models/User.js - User model for database operations:
@@ -147,12 +250,12 @@ const User = {
   create: async (userData) => {
     const { username, email, password } = userData;
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     const result = await query(
       'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
       [username, email, hashedPassword]
     );
-    
+
     return result.rows[0];
   },
 
@@ -162,7 +265,7 @@ const User = {
       'SELECT id, username, email, password_hash FROM users WHERE username = $1',
       [username]
     );
-    
+
     return result.rows[0];
   },
 
@@ -172,7 +275,7 @@ const User = {
       'SELECT id, username, email, password_hash FROM users WHERE email = $1',
       [email]
     );
-    
+
     return result.rows[0];
   },
 
@@ -182,7 +285,7 @@ const User = {
       'SELECT id, username, email, created_at FROM users WHERE id = $1',
       [id]
     );
-    
+
     return result.rows[0];
   }
 };
@@ -200,17 +303,17 @@ const auth = async (req, res, next) => {
   try {
     // Get token from header
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
-    
+
     // Get user from token
     const user = await User.findById(decoded.userId);
-    
+
     if (!user) {
       return res.status(401).json({ message: 'Token is not valid' });
     }
@@ -402,14 +505,15 @@ Now that all the backend files are created, let's build and run the backend cont
 From the project root directory (`/home/fedora/projects/simple-auth`), run:
 
 ```
-docker compose up --build backend
+docker compose up --build
 ```
 
 This will:
 1. Build the backend container using the Dockerfile
 2. Start the PostgreSQL database container (due to depends_on)
 3. Start the backend container
-4. Connect the backend to the database
+4. Start the frontend container
+5. Connect all services together
 
 ## STEP 4: TEST THE BACKEND ENDPOINTS
 
@@ -455,3 +559,5 @@ To verify that development happens entirely within containers:
 - Password hashing works correctly
 - Error handling is in place
 - Development happens entirely within containers (no local Node.js required)
+- Environment variables are properly loaded from .env file
+- Database configuration validates required environment variables before initialization
