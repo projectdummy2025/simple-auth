@@ -1,0 +1,24 @@
+# Database Configuration
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=simple_auth_db
+DB_USER=admin
+DB_PASSWORD=admin0123
+DB_URL=postgresql://admin:admin0123@postgres:5432/simple_auth_db
+
+# JWT Configuration
+JWT_SECRET=supersecret_jwt_key
+JWT_EXPIRES_IN=24h
+
+# Application Ports
+BACKEND_PORT=8000
+FRONTEND_PORT=3000
+POSTGRES_PORT=5432
+
+# Backend Configuration
+NODE_ENV=development
+BACKEND_HOST=0.0.0.0
+
+# Frontend Configuration
+REACT_APP_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000
