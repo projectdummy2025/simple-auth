@@ -4,14 +4,14 @@ FROM node:20-alpine
 # Set working directory in container
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from the src directory
+COPY src/package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install
 
-# Copy source code
-COPY src/ ./src/
+# Copy the rest of the source code
+COPY src/ .
 
 # Expose port
 EXPOSE 8000

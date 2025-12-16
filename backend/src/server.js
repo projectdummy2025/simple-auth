@@ -1,6 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const { pool } = require('./config/db'); // Database connection
+
+let db;
+try {
+  db = require('./config/db'); // Database connection
+} catch (error) {
+  console.error('Failed to load database configuration:', error.message);
+  process.exit(1);
+}
+
 const authRoutes = require('./routes/auth');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -24,14 +32,19 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 // Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-  } else {
-    console.log('Successfully connected to the database');
-    release();
-  }
-});
+const pool = db;
+if (pool && typeof pool.connect === 'function') {
+  pool.connect((err, client, release) => {
+    if (err) {
+      console.error('Error connecting to the database:', err);
+    } else {
+      console.log('Successfully connected to the database');
+      if (release) release();
+    }
+  });
+} else {
+  console.error('Database pool is not available or invalid');
+}
 
 const PORT = process.env.BACKEND_PORT || 8000;
 const HOST = process.env.BACKEND_HOST || '0.0.0.0';

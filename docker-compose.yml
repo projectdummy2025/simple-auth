@@ -12,7 +12,8 @@ services:
       - ./backend/src:/app/src
       - /app/node_modules  # Keep node_modules in container only
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - DB_HOST=${DB_HOST}
@@ -33,7 +34,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-3000}:80" # Perubahan di sini: dari 3000 menjadi 80
     volumes:
       - ./frontend/src:/app/src
       - /app/node_modules  # Keep node_modules in container only
@@ -62,10 +63,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U admin -d simple_auth_db || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
 networks:
   app-network:

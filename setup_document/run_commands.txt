@@ -1,0 +1,79 @@
+# Perintah untuk dijalankan secara manual
+# Ganti nilai dalam kurung <> dengan nilai yang sesuai jika perlu.
+
+# --- FASE 2: PENYIAPAN DATABASE ---
+
+# 1. Build dan jalankan container PostgreSQL
+# (Jalankan dari direktori root proyek: /home/fedora/projects/simple-auth)
+echo "Menjalankan container database..."
+docker compose up --build postgres
+
+# 2. Verifikasi koneksi ke database
+# (Buka terminal baru untuk menjalankan perintah ini)
+echo "Memeriksa container yang berjalan..."
+docker ps
+
+# Hubungkan ke container PostgreSQL menggunakan psql
+# Ganti <DB_USER> dan <DB_NAME> dengan nilai dari file .env Anda jika berbeda
+echo "Menghubungkan ke psql di dalam container..."
+docker exec -it simple-auth-postgres-1 psql -U admin -d simple_auth_db
+
+# Setelah masuk ke psql, verifikasi skema:
+# \dt
+# \d users
+# SELECT * FROM users;
+# exit
+
+# --- FASE 3: PENGEMBANGAN BACKEND ---
+
+# 1. Build dan jalankan container backend (dan database)
+# (Jalankan dari direktori root proyek: /home/fedora/projects/simple-auth)
+# Ini akan menginstal dependensi dari package.json di dalam container
+echo "Membangun dan menjalankan container backend..."
+docker compose up --build backend
+
+# --- PENGUJIAN ENDPOINT BACKEND ---
+# (Buka terminal baru untuk menjalankan perintah-perintah curl ini)
+
+# 1. Uji endpoint health check
+echo "Menguji endpoint /health..."
+curl http://localhost:8000/health
+echo ""
+
+# 2. Uji registrasi pengguna baru
+echo "Menguji endpoint /auth/register..."
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"testpassword"}'
+echo ""
+
+# 3. Uji login pengguna
+echo "Menguji endpoint /auth/login..."
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"testpassword"}'
+echo ""
+
+# 4. Uji rute yang dilindungi
+# Ganti <JWT_TOKEN_DARI_LOGIN> dengan token yang Anda dapatkan dari respons login
+echo "Menguji endpoint /auth/me (ganti <JWT_TOKEN_DARI_LOGIN>)..."
+# curl -H "Authorization: Bearer <JWT_TOKEN_DARI_LOGIN>" http://localhost:8000/auth/me
+echo ""
+
+# --- FASE 4: PENGEMBANGAN FRONTEND ---
+
+# 1. Build dan jalankan semua service termasuk frontend
+# (Jalankan dari direktori root proyek: /home/fedora/projects/simple-auth)
+# Ini akan menginstal dependensi dan membangun frontend di dalam container
+echo "Membangun dan menjalankan semua service..."
+docker compose up --build
+
+# Setelah perintah di atas selesai, aplikasi frontend akan tersedia di:
+# http://localhost:3000
+
+# --- Perintah Tambahan ---
+
+
+# Untuk menghentikan semua service yang berjalan:
+# (Jalankan dari direktori root proyek)
+# docker compose down
