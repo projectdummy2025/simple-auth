@@ -1,0 +1,145 @@
+Product Requirement Document (PRD)
+Proyek Autentikasi – Full Docker
+
+
+1. Gambaran Umum
+
+Proyek ini merupakan implementasi sistem autentikasi sederhana dengan pendekatan Full Docker.
+Seluruh runtime aplikasi dijalankan di dalam container untuk memastikan konsistensi environment dan kemudahan setup lintas mesin.
+
+Arsitektur proyek memisahkan frontend dan backend secara jelas, mengikuti praktik kerja tim yang umum digunakan.
+
+
+2. Tujuan Proyek
+
+Tujuan utama proyek ini adalah:
+
+-Menyediakan contoh proyek autentikasi yang berjalan penuh di Docker
+-Memastikan aplikasi dapat dijalankan tanpa instalasi runtime di host
+-Membiasakan struktur kerja terpisah antara frontend dan backend
+-Menyediakan alur autentikasi dasar yang mudah dipahami dan dikembangkan
+
+3. Ruang Lingkup
+
+Termasuk:
+
+-Backend API untuk autentikasi
+
+-Frontend untuk login dan register
+
+-Database PostgreSQL
+
+-Docker dan Docker Compose sebagai environment runtime
+
+-Dokumentasi dasar penggunaan proyek
+
+Tidak Termasuk:
+
+-OAuth / third-party authentication
+
+-Refresh token
+
+-Role & permission kompleks
+
+-Email verification
+
+-Deployment production
+
+-Proyek difokuskan pada kestabilan alur dasar, bukan fitur lanjutan.
+
+
+4. Arsitektur Sistem
+
+Teknologi yang Digunakan:
+
+-Backend: Node.js (Express)
+
+-Frontend: Vite (React atau setara)
+
+-Database: PostgreSQL
+
+-Containerization: Docker & Docker Compose
+
+Struktur Direktori:
+
+project-root/
+├── backend/
+│   ├── Dockerfile
+│   └── src/
+├── frontend/
+│   ├── Dockerfile
+│   └── src/
+├── docker-compose.yml
+└── README.md
+
+Setiap komponen memiliki tanggung jawab terpisah dan berjalan dalam container masing-masing.
+
+
+5. Alur Kerja Aplikasi
+User mengakses aplikasi frontend melalui browser
+
+-Frontend mengirim request ke backend API
+
+Backend:
+
+-memvalidasi data
+
+-mengakses database
+
+-menghasilkan response (JWT)
+
+Frontend menyimpan token dan menggunakannya untuk request berikutnya
+
+Endpoint protected hanya dapat diakses dengan token valid
+
+
+6. Fitur Utama
+
+Backend:
+
+POST /auth/register
+Mendaftarkan user baru
+
+POST /auth/login
+Autentikasi user dan mengembalikan token
+
+GET /auth/me
+Mengambil data user yang sedang login (protected)
+
+Frontend:
+
+Halaman Register
+
+Halaman Login
+
+Halaman Protected (contoh validasi token)
+
+Antarmuka dibuat sederhana dan fungsional.
+
+
+7. Konfigurasi Environment
+
+Prinsip:
+
+-Tidak ada dependency runtime di host
+
+-Semua service dijalankan melalui Docker
+
+-Konfigurasi menggunakan file .env
+
+-Menjalankan Proyek:
+
+docker compose up --build
+
+-Satu perintah untuk menjalankan seluruh sistem.
+
+
+8. Standar Pengembangan
+
+-Setiap service memiliki Dockerfile sendiri
+
+-Komunikasi antar service menggunakan service name Docker
+
+-Tidak ada hardcoded credential
+
+-Semua konfigurasi environment terdokumentasi
